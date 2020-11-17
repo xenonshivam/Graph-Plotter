@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Graph</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            min-width: 250px;
+            min-height: 250px;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .inputdiv {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 200px;
+            height: 225px;
+            z-index: 1;
+            background-color: #eee;
+            border-radius: 5%;
+            text-align: center;
+            border: 1px solid black;
+        }
+
+        .closediv {
+            text-align: right;
+            padding-right: 5px;
+
+        }
+
+        .closecross {
+            width: 5%;
+            height: auto;
+            cursor: pointer;
+            margin-left: 95%;
+        }
+
+        .inform {
+            background-color: #eee;
+            position: absolute;
+            width: 250px;
+            height: 100px;
+            top: 20px;
+            left: 20px;
+            text-align: center;
+            border: 1px solid black;
+            border-radius: 5%;
+            z-index: 2;
+        }
+
+        #anotherinput {
+            cursor: pointer;
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 200px;
+            height: auto;
+            z-index: 1;
+            background-color: #eee;
+            border-radius: 5%;
+            text-align: center;
+            border: 1px solid black;
+            display: none;
+        }
+    </style>
+
+</head>
+
+<body>
+    <canvas id="mycanvas" width="" height="" style="border: 1px solid red"></canvas>
+    <div class="inputdiv">
+        <div class="closediv" data-dismiss="inputdiv">
+            <div class="closecross" id="closebtn">&times;</div>
+        </div>
+        <!-- <br/> -->
+        <div class="contentdiv">
+
+            <!-- <label for="Y">Y: </label>
+                    <input type="text" id="expressionY" required />
+                    <br/>
+                    <br/> -->
+            <label for="X">Y= </label>
+            <input type="text" id="expressionX" required />
+            <br/>
+            <br/>
+            <div class="information">
+                <p>Input the expression like
+                    <br/>Y = (x+5)^(1/2)+50-2*(x-2)
+                    <br/>Y = asin(x/100)
+                    <br/>Y = 20*coth(x+5)</p>
+                <p style="color: red">Please click
+                    <a table="_blank" href="https://github.com/16sumanrana/Javascript-graph-plotter/blob/master/README.md">here</a> before submission</p>
+            </div>
+            <br/>
+            <div class="footer">
+                <button id="submit" type="button" title="Please visit the link first">Submit</button>
+            </div>
+
+        </div>
+    </div>
+    <div id="anotherinput">
+        <p>Input the expresion!</p>
+    </div>
+    <div class="inform">
+        <div class="closediv" data-dismiss="inputdiv">
+            <div class="closecross" id="closebtn2">&times;</div>
+        </div>
+        <p>Each smallbox along X-axis : 1 unit.</p>
+        <p>Each smallbox along Y-axis : 1 unit.</p>
+        <p>For trigonomatric expression x is in degree.</p>
+    </div>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script>
+        var c = document.getElementById("mycanvas");
+        c.width = screen.availWidth;
+        c.height = screen.availHeight;
+
+    </script>
+    <script>
+        $('document').ready(function () {
+            $('#closebtn').click(function () {
+                $('.inputdiv').hide('fade');
+                anotherinput();
+            });
+            $('#closebtn2').click(function () {
+                $('.inform').hide('fade');
+            });
+            function anotherinput() {
+                $('#anotherinput').show();
+                $('#anotherinput').click(function () {
+                    $('#anotherinput').hide('fade');
+                    $('.inputdiv').show('fade');
+                });
+            }
+        });
+    </script>
+    <script type="text/javascript">
+        class Stack {
+            constructor() {
+                this.items = [];
+            }
+
+            push(element) {
+                this.items.push(element);
+            }
+            pop() {
+                if (this.items.length == 0)
+                    return "Underflow";
+                return this.items.pop();
+            }
+            top() {
+                return this.items[this.items.length - 1];
+            }
+            isempty() {
+                return this.items.length == 0;
+            }
+            printstack() {
+                var str = "";
+                for (var i = 0; i < this.items.length; i++)
+                    str += this.items[i] + " ";
+            }
+        }
+        var postfixexp = "";
+        var m = 0, n = 0;
+        var canvas = document.getElementById('mycanvas'), ctx = canvas.getContext('2d');
+        // resize the canvas to fill browser window dynamically
+        window.addEventListener('resize', resizeCanvas, false);
+
+        function resizeCanvas(postfixexp) {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            // alert(canvas.width+" & "+canvas.height);
+            /**
+             * Your drawings need to be inside this function otherwise they will be reset when 
+             * you resize the browser window and the canvas goes will be cleared.
+             */
+            drawStuff(postfixexp);
+        }
+        if (m == 0) {
+            resizeCanvas(postfixexp); m++;                                     // initial page load and draw axis
+        }
+
+        function clearcanvas() {                                               // clearing the canvas when submit is clicked!!!!!! 
+            if (canvas.getContext) {
+                var ctx = canvas.getContext('2d');
+
+                var windowwidth = window.innerWidth;
+                var windowheight = window.innerHeight;
+                ctx.beginPath();
+                ctx.rect(0, 0, windowwidth, windowheight);
+                ctx.fillStyle = "white";
+                ctx.fill();
+                // alert("canvas cleared!");
+            }
+        }
+        function drawaxis() {                                                  // drawing the X & Y axes and small lines
+            if (canvas.getContext) {
+                var ctx = canvas.getContext('2d');
+
+                var windowwidth = window.innerWidth;
+                var windowheight = window.innerHeight;
+                var halfwindowwidth = windowwidth / 2;
+                var halfwindowheight = windowheight / 2;
+                var noofheightdivision = halfwindowheight / 25;
+                var eachdivwidth = halfwindowheight / noofheightdivision;
+                eachdivwidth = 25;
+                var eachsmallwidth = eachdivwidth / 5;
+                var noofwidthdivision = parseInt(Math.ceil(halfwindowwidth / eachdivwidth));
+                var i;
+                ctx.font = "30px Arial";
+                ctx.fillText("Y", halfwindowwidth + 5, 30);
+                ctx.font = "30px Arial";
+                ctx.fillText("X", halfwindowwidth * 2 - 30, halfwindowheight - 5);
+                ctx.strokeStyle = "#000000";
+                // alert(windowwidth+" "+windowheight);
+                ctx.beginPath();
+                ctx.moveTo(windowwidth / 2, 0);
+                ctx.lineTo(windowwidth / 2, windowheight);
+                ctx.moveTo(0, windowheight / 2);
+                ctx.lineTo(windowwidth, windowheight / 2);
+                ctx.lineWidth = "1.3";
+                ctx.stroke();
+                ctx.beginPath();
+                for (i = 1; i <= noofheightdivision; i++) {
+                    ctx.moveTo(0, halfwindowheight + i * eachdivwidth);
+                    ctx.lineTo(windowwidth, halfwindowheight + i * eachdivwidth);
+                    ctx.moveTo(0, halfwindowheight - i * eachdivwidth);
+                    ctx.lineTo(windowwidth, halfwindowheight - i * eachdivwidth);
+                }
+                for (i = 1; i <= noofwidthdivision; i++) {
+                    ctx.moveTo(halfwindowwidth + i * eachdivwidth, 0);
+                    ctx.lineTo(halfwindowwidth + i * eachdivwidth, windowheight);
+                    ctx.moveTo(halfwindowwidth - i * eachdivwidth, 0);
+                    ctx.lineTo(halfwindowwidth - i * eachdivwidth, windowheight);
+                }
+                ctx.lineWidth = "0.5";
+                ctx.stroke();
+                ctx.beginPath();
+                for (i = 1; i <= noofheightdivision * 5; i++) {
+                    ctx.moveTo(0, halfwindowheight + i * eachsmallwidth);
+                    ctx.lineTo(windowwidth, halfwindowheight + i * eachsmallwidth);
+                    ctx.moveTo(0, halfwindowheight - i * eachsmallwidth);
+                    ctx.lineTo(windowwidth, halfwindowheight - i * eachsmallwidth);
+                }
+                for (i = 1; i <= noofwidthdivision * 5; i++) {
+                    ctx.moveTo(halfwindowwidth + i * eachsmallwidth, 0);
+                    ctx.lineTo(halfwindowwidth + i * eachsmallwidth, windowheight);
+                    ctx.moveTo(halfwindowwidth - i * eachsmallwidth, 0);
+                    ctx.lineTo(halfwindowwidth - i * eachsmallwidth, windowheight);
+                }
+                ctx.lineWidth = "0.3";
+                ctx.stroke();
+
+            }
+        }
+        function drawStuff() {                                                // drawing all stuff and controlling submit button
+            if (canvas.getContext) {
+                var ctx = canvas.getContext('2d');
+
+                var windowwidth = window.innerWidth;
+                var windowheight = window.innerHeight;
+                var halfwindowwidth = windowwidth / 2;
+                var halfwindowheight = windowheight / 2;
+                var noofheightdivision = halfwindowheight / 25;
+                var eachdivwidth = halfwindowheight / noofheightdivision;
+                eachdivwidth = 25;
+                var eachsmallwidth = eachdivwidth / 5;
+                var noofwidthdivision = parseInt(Math.ceil(halfwindowwidth / eachdivwidth));
+                var i;
+
+                drawaxis();
+                if (postfixexp.length != 0) {
+                    drawgraph(postfixexp, halfwindowwidth, halfwindowheight, ctx, eachsmallwidth);
+                }
+                document.getElementById("submit").addEventListener("click", function () {
+                    var infixexp = document.getElementById("expressionX").value;
+                    if (infixexp.length != 0) {
+                        clearcanvas();
+                        drawaxis(); n = 1;
+                        postfixexp = infixtopostfix_exp(infixexp);
+                        drawgraph(postfixexp, halfwindowwidth, halfwindowheight, ctx, eachsmallwidth);
+                    }
+                });
+            }
+        }
+
+        function is_operator(ch) {                                                // checking operator or not
+            if ((ch == "^") || (ch == "*") || (ch == "+") || (ch == "-") || (ch == "/"))
+                return 0;
+            return 1;
+        }
+        function operator_precedence(char) {                                        // checking operator precedence
+            if (char == "^")
+                return 3;
+            else if ((char == "*") || (char == "/"))
+                return 2;
+            else if ((char == "+") || (char == "-"))
+                return 1;
+            return -1;
+        }
+        function infixtopostfix_exp(infixexp) {                                       // infix to postfix expression 
+            var postfixexp = "";
+            if (infixexp[0] == "-" || infixexp[0] == "+")
+                infixexp = "0" + infixexp;
+            infixexp += ")";
+            var l = infixexp.length;
+            var stack = new Stack();
+            stack.push("(");
+            for (var i = 0; i < l; i++) {
+                var c = infixexp[i];
+                if (c == "x") {
+                    postfixexp += "x";
+                }
+                else if (infixexp[i] == "e") {
+                    postfixexp += infixexp[i];
+                }
+                else if ((infixexp[i] >= "a" && infixexp[i] <= "z") || (infixexp[i] >= "A" && infixexp[i] <= "Z")) {
+                    var tri = "", tri_exp = "";
+                    while (infixexp[i] != "(") {
+                        tri += infixexp[i];
+                        i++;
+                    }
+                    i++;
+                    stack_tri = new Stack();
+                    stack_tri.push("(");
+                    tri_exp += "(";
+                    while (!stack_tri.isempty()) {
+                        if (infixexp[i] == "(") {
+                            stack_tri.push("(");
+                            tri_exp += infixexp[i];
+                        }
+                        else if (infixexp[i] == ")") {
+                            stack_tri.pop();
+                            tri_exp += infixexp[i];
+                        }
+                        else {
+                            tri_exp += infixexp[i];
+                        }
+                        i++;
+                    }
+                    tri_exp = tri_exp.slice(1, -1);
+                    postfixexp += infixtopostfix_exp(tri_exp);
+                    postfixexp += "(" + tri + ")";
+                    i--;
+                }
+                else if (!is_operator(infixexp[i])) {
+                    while (!stack.isempty() && operator_precedence(stack.top()) >= operator_precedence(infixexp[i])) {
+                        postfixexp += stack.top();
+                        stack.pop();
+                    }
+                    stack.push(infixexp[i]);
+                }
+                else if (infixexp[i] == "(") {
+                    stack.push("(");
+                    if (infixexp[i + 1] == "-" || infixexp[i + 1] == "+") {
+                        postfixexp += ("(" + 0 + ")");
+                    }
+                }
+                else if (infixexp[i] != "(" && infixexp[i] != ")") {
+                    var num = "";
+                    while (is_operator(infixexp[i]) && infixexp[i] != ")") {
+                        num += infixexp[i];
+                        i++;
+                    }
+                    i--;
+                    postfixexp += "(" + num + ")";
+                }
+                else {
+                    while (!stack.isempty() && stack.top() != "(") {
+                        postfixexp += stack.top();
+                        stack.pop();
+                    }
+                    if (!stack.isempty() && stack.top() == "(")
+                        stack.pop();
+                }
+            }
+            return postfixexp;
+        }
+        function postfixexp_to_value(postfixexp, x_value) {                         // determining the value of y putting x=0px,1px,2....halfwidthof_window
+            var stack = new Stack();
+            var l = postfixexp.length;
+            for (var i = 0; i < l; i++) {
+                if (!is_operator(postfixexp[i])) {
+                    var val1 = stack.top();
+                    stack.pop();
+                    var val2 = stack.top();
+                    stack.pop();
+                    switch (postfixexp[i]) {
+                        case "+":
+                            stack.push(val1 + val2); break;
+                        case "-":
+                            stack.push(val2 - val1); break;
+                        case "*":
+                            stack.push(val1 * val2); break;
+                        case "/":
+                            stack.push(parseFloat(val2 / val1)); break;
+                        case "^":
+                            stack.push(Math.pow(val2, val1)); break;
+                    }
+                }
+                else if (postfixexp[i] == "x") {
+                    stack.push(x_value);
+                }
+                else if (postfixexp[i] == "e") {
+                    stack.push(Math.E);
+                }
+                else if (postfixexp[i] == "(") {
+                    if ((postfixexp[i + 1] >= "a" && postfixexp[i + 1] <= "z") || (postfixexp[i + 1] >= "A" && postfixexp[i + 1] <= "Z")) {
+                        var tri = "", a = 0;
+                        i++;
+                        while (postfixexp[i] != ")") {
+                            tri += postfixexp[i];
+                            i++;
+                        }
+                        switch (tri) {
+                            case "abs":
+                                a = stack.top(); stack.pop();
+                                stack.push(Math.abs(a)); break;
+                            case "log":
+                                a = stack.top(); stack.pop();
+                                stack.push(parseFloat(Math.log(a))); break;
+                            case "log10":
+                                a = stack.top(); stack.pop();
+                                stack.push(parseFloat(Math.log10(a))); break;
+                            case "log1p":
+                                a = stack.top(); stack.pop();
+                                stack.push(parseFloat(Math.log1p(a))); break;
+                            case "log2":
+                                a = stack.top(); stack.pop();
+                                stack.push(parseFloat(Math.log2(a))); break;
+                            case "sin":
+                                a = stack.top(); stack.pop(); a = parseFloat((a * (Math.PI / 180.0)));
+                                stack.push(parseFloat(Math.sin(a))); break;
+                            case "cos":
+                                a = stack.top(); stack.pop(); a = parseFloat((a * (Math.PI / 180.0)));
+                                stack.push(parseFloat(Math.cos(a))); break;
+                            case "tan":
+                                a = stack.top(); stack.pop(); a = parseFloat((a * (Math.PI / 180.0)));
+                                stack.push(parseFloat(Math.tan(a))); break;
+                            case "cosec":
+                                a = stack.top(); stack.pop(); a = parseFloat((a * (Math.PI / 180.0)));
+                                stack.push(parseFloat(1 / (Math.sin(a)))); break;
+                            case "sec":
+                                a = stack.top(); stack.pop(); a = parseFloat((a * (Math.PI / 180.0)));
+                                stack.push(parseFloat(1 / (Math.cos(a)))); break;
+                            case "cot":
+                                a = stack.top(); stack.pop(); a = parseFloat((a * (Math.PI / 180.0)));
+                                stack.push(parseFloat(1 / (Math.tan(a)))); break;
+                            case "asin":
+                                a = stack.top(); stack.pop();
+                                stack.push(parseFloat((180.0 / Math.PI) * Math.asin(a))); break;
+                            case "acos":
+                                a = stack.top(); stack.pop();
+                                stack.push(parseFloat((180.0 / Math.PI) * Math.acos(a))); break;
+                            case "atan":
+                                a = stack.top(); stack.pop();
+                                stack.push(parseFloat((180.0 / Math.PI) * Math.atan(a))); break;
+                            case "acosec":
+                                a = stack.top(); stack.pop();
+                                stack.push(parseFloat((180.0 / Math.PI) * ((Math.PI / 2) - (Math.asin(x))))); break;
+                            case "asec":
+                                a = stack.top(); stack.pop();
+                                stack.push(parseFloat((180.0 / Math.PI) * ((Math.PI / 2) - (Math.acos(x))))); break;
+                            case "acot":
+                                a = stack.top(); stack.pop();
+                                stack.push(parseFloat((180.0 / Math.PI) * ((Math.PI / 2) - (Math.atan(x))))); break;
+                            case "sinh":
+                                a = stack.top(); stack.pop();//a=parseFloat((a*(Math.PI/180.0)));
+                                stack.push(parseFloat(Math.sinh(a))); break;
+                            case "cosh":
+                                a = stack.top(); stack.pop();//a=parseFloat((a*(Math.PI/180.0)));
+                                stack.push(parseFloat(Math.cosh(a))); break;
+                            case "tanh":
+                                a = stack.top(); stack.pop();//a=parseFloat((a*(Math.PI/180.0)));
+                                stack.push(parseFloat(Math.tanh(a))); break;
+                            case "csch":
+                                a = stack.top(); stack.pop();//a=parseFloat((a*(Math.PI/180.0)));
+                                stack.push(parseFloat(1 / (Math.sinh(a)))); break;
+                            case "sech":
+                                a = stack.top(); stack.pop();//a=parseFloat((a*(Math.PI/180.0)));
+                                stack.push(parseFloat(1 / (Math.cosh(a)))); break;
+                            case "coth":
+                                a = stack.top(); stack.pop();//a=parseFloat((a*(Math.PI/180.0)));
+                                stack.push(parseFloat(1 / (Math.tanh(a)))); break;
+                            case "arsinh":
+                                a = stack.top(); stack.pop();//a=parseFloat((a*(Math.PI/180.0)));
+                                stack.push(parseFloat(Math.asinh(a))); break;
+                            case "arcosh":
+                                a = stack.top(); stack.pop();//a=parseFloat((a*(Math.PI/180.0)));
+                                stack.push(parseFloat(Math.acosh(a))); break;
+                            case "artanh":
+                                a = stack.top(); stack.pop();//a=parseFloat((a*(Math.PI/180.0)));
+                                stack.push(parseFloat(Math.atanh(a))); break;
+                            case "arcsch":
+                                a = stack.top(); stack.pop();//a=parseFloat((a*(Math.PI/180.0)));
+                                stack.push(parseFloat(Math.sinh(1 / a))); break;
+                            case "arsech":
+                                a = stack.top(); stack.pop();//a=parseFloat((a*(Math.PI/180.0)));
+                                stack.push(parseFloat((Math.cosh(1 / a)))); break;
+                            case "arcoth":
+                                a = stack.top(); stack.pop();//a=parseFloat((a*(Math.PI/180.0)));
+                                stack.push(parseFloat((Math.tanh(1 / a)))); break;
+                        }
+                    }
+                    else {
+                        var num = "";
+                        i++;
+                        while (postfixexp[i] != ")") {
+                            num += postfixexp[i];
+                            i++;
+                        }
+                        stack.push(parseFloat(num));
+                    }
+                }
+            }
+            return stack.top();
+        }
+        function drawgraph(postfixexp, halfwindowwidth, halfwindowheight, ctx, eachsmallwidth) {            // drawing the graph
+            ctx.fillStyle = "#000000";
+            ctx.font = "30px Arial";
+            ctx.fillText("Y", halfwindowwidth + 5, 30);
+            ctx.font = "30px Arial";
+            ctx.fillText("X", halfwindowwidth * 2 - 30, halfwindowheight - 5);
+            ctx.strokeStyle = "#FF0000";
+            ctx.fillStyle = "#FF0000";
+            // alert(parseFloat(Math.tan(Math.PI/2)));
+            var pre_y = 0;
+            var pre_x = 0;
+            ctx.beginPath();
+            pre_y = postfixexp_to_value(postfixexp, parseFloat(1 / eachsmallwidth));
+            pre_x = parseFloat(1 / eachsmallwidth);
+            ctx.moveTo(halfwindowwidth + 0 * eachsmallwidth, (halfwindowheight - postfixexp_to_value(postfixexp, 0) * eachsmallwidth));
+            ctx.lineTo(halfwindowwidth + pre_x * eachsmallwidth, halfwindowheight - pre_y * eachsmallwidth);
+            ctx.lineWidth = "1";
+            ctx.closePath();
+            ctx.stroke();
+            ctx.fillRect(halfwindowwidth + 0 * eachsmallwidth, (halfwindowheight - postfixexp_to_value(postfixexp, 0) * eachsmallwidth), 1, 1);
+            ctx.fillRect(halfwindowwidth + pre_x * eachsmallwidth, halfwindowheight - pre_y * eachsmallwidth, 1, 1);
+            for (var i = 2; i <= halfwindowwidth; i += (1)) {
+                var y = postfixexp_to_value(postfixexp, parseFloat(i / eachsmallwidth));
+                if (Math.abs(y * eachsmallwidth) <= halfwindowheight && Math.abs(pre_y * eachsmallwidth) <= halfwindowheight) {
+                    ctx.fillRect(halfwindowwidth + i / eachsmallwidth * eachsmallwidth, halfwindowheight - y * eachsmallwidth, 1, 1);
+                    ctx.beginPath();
+                    ctx.moveTo(halfwindowwidth + pre_x * eachsmallwidth, halfwindowheight - pre_y * eachsmallwidth);
+                    ctx.lineTo(halfwindowwidth + i / eachsmallwidth * eachsmallwidth, halfwindowheight - y * eachsmallwidth);
+                    ctx.lineWidth = "1";
+                    ctx.closePath();
+                    ctx.stroke();
+                }
+                pre_y = y;
+                pre_x = i / eachsmallwidth;
+            }
+            ctx.beginPath();
+            pre_y = postfixexp_to_value(postfixexp, (-1) * 1 / eachsmallwidth);
+            pre_x = 1 / eachsmallwidth;
+            ctx.moveTo(halfwindowwidth + 0 * eachsmallwidth, (halfwindowheight - postfixexp_to_value(postfixexp, 0) * eachsmallwidth));
+            ctx.lineTo(halfwindowwidth - pre_x * eachsmallwidth, halfwindowheight - pre_y * eachsmallwidth);
+            ctx.lineWidth = "1";
+            ctx.closePath();
+            ctx.stroke();
+            ctx.fillRect(halfwindowwidth - pre_x * eachsmallwidth, halfwindowheight - pre_y * eachsmallwidth, 1, 1);
+            for (var i = 2; i <= halfwindowwidth; i += (1)) {
+                var y = postfixexp_to_value(postfixexp, (-1) * i / eachsmallwidth);
+                if (Math.abs(y * eachsmallwidth) <= halfwindowheight && Math.abs(pre_y * eachsmallwidth) <= halfwindowheight) {
+                    ctx.fillRect(halfwindowwidth - i / eachsmallwidth * eachsmallwidth, halfwindowheight - y * eachsmallwidth, 1, 1);
+                    ctx.beginPath();
+                    ctx.moveTo(halfwindowwidth - pre_x * eachsmallwidth, halfwindowheight - pre_y * eachsmallwidth);
+                    ctx.lineTo(halfwindowwidth - i / eachsmallwidth * eachsmallwidth, halfwindowheight - y * eachsmallwidth);
+                    ctx.lineWidth = "1";
+                    ctx.closePath();
+                    ctx.stroke();
+                }
+                pre_y = y;
+                pre_x = i / eachsmallwidth;
+            }
+            // ctx.lineWidth="2";
+            // ctx.closePath();
+            // ctx.stroke();
+        }
+    </script>
+</body>
+
+</html>
